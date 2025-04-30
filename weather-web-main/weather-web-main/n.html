@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather App</title>
+    <link rel="stylesheet" href="n.css">
+</head>
+<body>
+    <!-- Background Video Container -->
+    <div class="background-video-container">
+        <video autoplay muted loop id="background-video">
+            <source src="https://v.ftcdn.net/05/20/35/25/700_F_520352576_xBIrWVTyMtlAsesCB0YFXFcTs23dLbcM_ST.mp4" type="video/mp4">
+        </video>
+    </div>
+
+    <div class="container">
+        <div id="main-card">
+            <h1>Weather App</h1>
+            <input type="text" id="city" placeholder="Enter City Name">
+            <button id="searchBtn">Search</button>
+            <div id="today-weather-info"></div>
+            <button id="fullForecastBtn" style="display:none;">Full 5-Day Forecast</button>
+        </div>
+        <div id="forecast-info" style="display:none;"></div>
+    </div>
+
+    <script src="n.js"></script>
+</body>
+</html>

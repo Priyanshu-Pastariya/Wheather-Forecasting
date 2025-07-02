@@ -4,27 +4,50 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Weather App</title>
-    <link rel="stylesheet" href="n.css">
+    <link rel="stylesheet" href="w.css">
 </head>
-<body>
-    <!-- Background Video Container -->
-    <div class="background-video-container">
-        <video autoplay muted loop id="background-video">
-            <source src="https://v.ftcdn.net/05/20/35/25/700_F_520352576_xBIrWVTyMtlAsesCB0YFXFcTs23dLbcM_ST.mp4" type="video/mp4">
-        </video>
-    </div>
+<body id="body">
 
+    <!-- Main Card -->
     <div class="container">
-        <div id="main-card">
-            <h1>Weather App</h1>
-            <input type="text" id="city" placeholder="Enter City Name">
-            <button id="searchBtn">Search</button>
-            <div id="today-weather-info"></div>
-            <button id="fullForecastBtn" style="display:none;">Full 5-Day Forecast</button>
+        <h1>Weather App</h1>
+        <input type="text" id="city" placeholder="Enter city">
+        <button id="searchBtn">Search</button> 
+
+        <!-- Microphone Button -->
+        <button id="micBtn" aria-label="Click to use voice command" title="Click to speak the city name">
+            🎙 mic
+        </button>
+
+        <!-- Loading State -->
+        <div id="loading" style="display: none;">Loading...</div>
+
+        <!-- Weather Info for Today -->
+        <div class="weather-info">
+            <h2 id="city-name"></h2>
+            <p id="temperature"></p>
+            <p id="description"></p>
+            <p id="humidity"></p>
         </div>
-        <div id="forecast-info" style="display:none;"></div>
+
+        <!-- Button to view 5 day forecast -->
+        <button class="view-forecast-btn" style="display:none;" onclick="show5DayForecast()">View next 5 days</button>
     </div>
 
-    <script src="n.js"></script>
+    <!-- 5 Day Forecast Section -->
+    <div class="forecast-container" style="display:none;">
+        <div class="forecast-cards">
+            <!-- Forecast Cards will be populated here -->
+        </div>
+    </div>
+
+    <!-- Additional Info Section (like wind speed, UV index, etc.) -->
+    <div class="additional-info" style="display:none;">
+        <h3>Additional Information</h3>
+        <p id="wind-speed"></p>
+        <p id="uv-index"></p>
+    </div>
+
+    <script src="w.js"></script>
 </body>
 </html>

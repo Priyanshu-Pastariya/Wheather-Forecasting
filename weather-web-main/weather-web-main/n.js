@@ -1,100 +1,157 @@
-document.getElementById("searchBtn").addEventListener("click", function() {
-    const city = document.getElementById("city").value;
-    if (city) {
-        getWeather(city);
-        document.getElementById("forecast-info").style.display = "none"; // Hide forecast info when searching for a new city
-        document.getElementById("fullForecastBtn").style.display = "none"; // Hide 5-day forecast button
-    } else {
-        alert("Please enter a city name");
+document.getElementById("city").addEventListener("keypress", function(event) {
+    // Check if the pressed key is "Enter" (keyCode 13)
+    if (event.key === "Enter") {
+        event.preventDefault(); // Prevent form submission if inside a form
+        getWeather(); // Trigger the weather fetch function
     }
 });
 
-function getWeather(city) {
-    const apiKey = 'ffaf13be2ebb140a939f88c2e5b399fd';
+document.getElementById("searchBtn").addEventListener("click", getWeather);
+
+document.getElementById("micBtn").addEventListener("click", startListening);
+
+let recognition;
+
+function initializeSpeechRecognition() {
+    // Initialize speech recognition if the browser supports it
+    if (!('webkitSpeechRecognition' in window)) {
+        alert("Speech recognition is not supported in this browser.");
+        return;
+    }
+    
+    recognition = new webkitSpeechRecognition();
+    recognition.lang = 'en-US'; // Set language to English
+    recognition.interimResults = false; // Don't show interim results
+    recognition.maxAlternatives = 1; // Only take the best match
+    
+    recognition.onstart = () => {
+        document.getElementById("micBtn").textContent = "Listening...";
+        document.getElementById("micBtn").disabled = true; // Disable mic button while listening
+    };
+    
+    recognition.onerror = (event) => {
+        console.error("Speech recognition error", event);
+        document.getElementById("micBtn").textContent = "Start Listening";
+        document.getElementById("micBtn").disabled = false;
+    };
+    
+    recognition.onend = () => {
+        document.getElementById("micBtn").textContent = "Start Listening";
+        document.getElementById("micBtn").disabled = false; // Re-enable mic button
+    };
+    
+    recognition.onresult = (event) => {
+        const city = event.results[0][0].transcript; // Get the city name from the speech input
+        const cleanCity = city.replace(/\.$/, ''); // Remove the trailing dot (.) if it exists
+        document.getElementById("city").value = city; // Put the city name in the input field
+        getWeather(); // Fetch weather based on the city name
+    };
+}
+
+function startListening() {
+    if (!recognition) {
+        initializeSpeechRecognition(); // Initialize recognition if not already done
+    }
+    recognition.start(); // Start listening
+}
+
+function getWeather() {
+    let city = document.getElementById("city").value;
+    if (city === "") {
+        alert("Please enter a city name.");
+        return;
+    }
+
+    // Show loading message
+    document.getElementById("loading").style.display = "block";
+
+    const apiKey = "ffaf13be2ebb140a939f88c2e5b399fd"; // Your OpenWeatherMap API Key
     const apiUrl = `https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric`;
 
     fetch(apiUrl)
         .then(response => response.json())
         .then(data => {
-            if (data.cod !== 200) {
-                alert("City not found!");
-                return;
+            // Hide loading message
+            document.getElementById("loading").style.display = "none";
+            
+            if (data.cod === "404") {
+                alert("City not found.");
+            } else {
+                displayWeather(data);
             }
-            displayWeatherPopup(data);
-            getFiveDayForecast(city); // Fetch the 5-day forecast after getting today's weather
         })
-        .catch(error => {
-            console.error("Error fetching weather data:", error);
-            alert("Error fetching data.");
+        .catch(err => {
+            console.error("Error fetching data:", err);
+            document.getElementById("loading").style.display = "none"; // Hide loading on error
+            alert("Error fetching weather data. Please try again later.");
         });
 }
 
-function getFiveDayForecast(city) {
-    const apiKey = 'ffaf13be2ebb140a939f88c2e5b399fd';
+function displayWeather(data) {
+    // Display current weather
+    document.getElementById("city-name").textContent = `${data.name}, ${data.sys.country}`;
+    document.getElementById("temperature").textContent = `Temperature: ${data.main.temp}°C`;
+    document.getElementById("description").textContent = `Description: ${data.weather[0].description}`;
+    document.getElementById("humidity").textContent = `Humidity: ${data.main.humidity}%`;
+
+    // Change background based on the weather condition
+    changeBackground(data.weather[0].main.toLowerCase());
+
+    // Show the button for 5 day forecast
+    document.querySelector(".view-forecast-btn").style.display = "block";
+
+    // Additional info: Wind speed and UV index (Example)
+    fetch(`https://api.openweathermap.org/data/2.5/onecall?lat=${data.coord.lat}&lon=${data.coord.lon}&exclude=hourly,daily&appid=${apiKey}&units=metric`)
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById("wind-speed").textContent = `Wind Speed: ${data.current.wind_speed} m/s`;
+            document.getElementById("uv-index").textContent = `UV Index: ${data.current.uvi}`;
+            document.querySelector(".additional-info").style.display = "block";
+        });
+}
+
+function changeBackground(weather) {
+    const backgrounds = {
+        clear: "wc.jpg",
+        rain: "wr.jpg",
+        snow: "ws.jpg",
+        clouds: "wpc.jpg",
+        thunderstorm: "wt.jpg",
+        drizzle: "wd.jpg",
+    };
+    const body = document.getElementById("body");
+    body.style.backgroundImage = `url('${backgrounds[weather] || "w.jpg"}')`;
+}
+
+function show5DayForecast() {
+    const city = document.getElementById("city").value;
+    const apiKey = "ffaf13be2ebb140a939f88c2e5b399fd";
     const apiUrl = `https://api.openweathermap.org/data/2.5/forecast?q=${city}&appid=${apiKey}&units=metric`;
 
     fetch(apiUrl)
         .then(response => response.json())
         .then(data => {
-            if (data.cod !== '200') {
-                alert("Forecast data not found!");
-                return;
-            }
-            displayForecast(data);
+            const forecastContainer = document.querySelector(".forecast-cards");
+            forecastContainer.innerHTML = ""; // Clear previous forecast cards
+
+            data.list.forEach((forecast, index) => {
+                if (index % 8 === 0) {  // Show forecast every 24 hours (8 data points per day)
+                    const card = document.createElement("div");
+                    card.classList.add("forecast-card");
+                    card.innerHTML = `
+                        <h4>${new Date(forecast.dt * 1000).toLocaleDateString()}</h4>
+                        <p>Temp: ${forecast.main.temp}°C</p>
+                        <p>${forecast.weather[0].description}</p>
+                    `;
+                    forecastContainer.appendChild(card);
+                }
+            });
+
+            // Show the forecast section
+            document.querySelector(".forecast-container").style.display = "block";
         })
-        .catch(error => {
-            console.error("Error fetching forecast data:", error);
-            alert("Error fetching forecast data.");
+        .catch(err => {
+            console.error("Error fetching forecast:", err);
+            alert("Error fetching the 5-day forecast. Please try again later.");
         });
 }
-
-function displayWeatherPopup(data) {
-    const iconCode = data.weather[0].icon;
-    const iconUrl = `https://openweathermap.org/img/wn/${iconCode}@2x.png`;
-
-    const todayWeatherHtml = `
-        <h3>Today's Weather</h3>
-        <div>
-            <img src="${iconUrl}" alt="Weather Icon">
-            <p>${data.name}, ${data.sys.country}</p>
-            <p>Temperature: ${data.main.temp}°C</p>
-            <p>${data.weather[0].description}</p>
-            <p>Humidity: ${data.main.humidity}%</p>
-        </div>
-    `;
-    
-    document.getElementById("today-weather-info").innerHTML = todayWeatherHtml;
-    document.getElementById("today-weather-info").style.display = "block"; // Show today's weather section
-    document.getElementById("fullForecastBtn").style.display = "inline-block"; // Show the 5-day forecast button
-}
-
-function displayForecast(data) {
-    let forecastHtml = '';
-    let cardDelay = 0;
-
-    data.list.forEach((forecast, index) => {
-        if (index % 8 === 0) { 
-            const iconCode = forecast.weather[0].icon;
-            const iconUrl = `https://openweathermap.org/img/wn/${iconCode}@2x.png`;
-            const date = new Date(forecast.dt * 1000);
-            const day = date.toLocaleDateString();
-
-            forecastHtml += `
-                <div class="forecast-card" style="animation-delay: ${cardDelay}s;">
-                    <p><strong>${day}</strong></p>
-                    <img src="${iconUrl}" alt="Weather Icon">
-                    <p>Temp: ${forecast.main.temp}°C</p>
-                    <p>${forecast.weather[0].description}</p>
-                </div>
-            `;
-            cardDelay += 0.3;
-        }
-    });
-
-    document.getElementById("forecast-info").innerHTML = forecastHtml;
-}
-
-document.getElementById("fullForecastBtn").addEventListener("click", function() {
-    document.getElementById("forecast-info").style.display = "flex"; // Show 5-day forecast when button is clicked
-});
-
